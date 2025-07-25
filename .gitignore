@@ -1,0 +1,5 @@
+﻿.vs
+SharePoint.CSOM.Extensions/bin
+SharePoint.CSOM.Extensions/obj
+TestApp/bin
+TestApp/obj
