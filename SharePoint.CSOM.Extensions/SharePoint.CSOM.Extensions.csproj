@@ -4,11 +4,29 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>SharePoint.CSOM.Extensions</Title>
+    <PackageDescription>Strongly-typed async extensions for SharePoint CSOM with automatic batching, retry support, and smart change detection. Simplify SharePoint list operations with type-safe CRUD methods.</PackageDescription>
+    <Authors>jeppe-spanggaard</Authors>
+    <PackageProjectUrl>https://github.com/jeppesc11/SharePoint.CSOM.Extensions</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/jeppesc11/SharePoint.CSOM.Extensions</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.SharePointOnline.CSOM" Version="16.1.26211.12010" />
-    <PackageReference Include="PnP.Framework" Version="1.18.0" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@
 using SharePoint.CSOM.Extensions.Extensions;
 using SharePoint.CSOM.Extensions.Helpers;
 using SharePoint.CSOM.Extensions.Models;
+using SharePoint.CSOM.Extensions.Configuration;
 
 namespace SharePoint.CSOM.Extensions
 {
@@ -13,7 +14,9 @@ namespace SharePoint.CSOM.Extensions
         {
             var listItem = CreateListItem(list, item);
             listItem.Update();
-            await list.Context.ExecuteQueryRetryAsync();
+            
+            await ExecuteQuery(list.Context, () => { /* Setup already done above */ });
+            
             return item.Load(listItem);
         }
 
@@ -26,7 +29,8 @@ namespace SharePoint.CSOM.Extensions
                     return listItem;
                 }).ToList();
 
-                await list.Context.ExecuteQueryRetryAsync();
+                await ExecuteQuery(list.Context, () => { /* Setup already done above */ });
+                
                 return created;
             });
 
@@ -40,6 +44,19 @@ namespace SharePoint.CSOM.Extensions
             return list.AddItem(new ListItemCreationInformation()).PopulateFromDictionary(item.ToDictionary());
         }
 
+        private static async Task ExecuteQuery(ClientRuntimeContext context, Action setupAction)
+        {
+            if (CSOMConfiguration.HasGlobalConfiguration)
+            {
+                await CSOMConfiguration.ExecuteWithGlobalConfiguration(context, setupAction);
+            }
+            else
+            {
+                setupAction();
+                await context.ExecuteQueryAsync();
+            }
+        }
+
         #endregion Private Methods
 
         #endregion CREATE
@@ -48,11 +65,12 @@ namespace SharePoint.CSOM.Extensions
 
         public static async Task<T?> GetItemById<T>(this List list, int id) where T : ListItemModel<T>, new()
         {
-
             var listItem = list.GetItemById(id);
-            list.Context.Load(listItem);
-
-            await list.Context.ExecuteQueryRetryAsync();
+            
+            await ExecuteQuery(list.Context, () => {
+                list.Context.Load(listItem);
+            });
+            
             return listItem != null ? new T().Load(listItem) : null;
         }
 
@@ -62,8 +80,11 @@ namespace SharePoint.CSOM.Extensions
             do
             {
                 var items = list.GetItems(query);
-                list.Context.Load(items);
-                await list.Context.ExecuteQueryRetryAsync();
+                
+                await ExecuteQuery(list.Context, () => {
+                    list.Context.Load(items);
+                });
+                
                 result.AddRange(items);
                 query.ListItemCollectionPosition = items.ListItemCollectionPosition;
             } while (query.ListItemCollectionPosition != null);
@@ -85,7 +106,8 @@ namespace SharePoint.CSOM.Extensions
                     return item;
                 }).ToList();
 
-                await list.Context.ExecuteQueryRetryAsync();
+                await ExecuteQuery(list.Context, () => { /* Load calls already done above */ });
+                
                 return items;
             });
 
@@ -100,8 +122,10 @@ namespace SharePoint.CSOM.Extensions
         {
             CSOMHelpers.ValidateItemId(item);
             var listItem = list.GetItemById(item.Id!.Value);
-            list.Context.Load(listItem);
-            await list.Context.ExecuteQueryRetryAsync();
+            
+            await ExecuteQuery(list.Context, () => {
+                list.Context.Load(listItem);
+            });
 
             var updatedValues = item.ToDictionary();
 
@@ -109,7 +133,8 @@ namespace SharePoint.CSOM.Extensions
             {
                 listItem.PopulateFromDictionary(updatedValues);
                 listItem.Update();
-                await list.Context.ExecuteQueryRetryAsync();
+                
+                await ExecuteQuery(list.Context, () => { /* Update calls already done above */ });
             }
 
             return item.Load(listItem);
@@ -141,7 +166,7 @@ namespace SharePoint.CSOM.Extensions
 
                 if (toUpdate.Count > 0)
                 {
-                    await list.Context.ExecuteQueryRetryAsync();
+                    await ExecuteQuery(list.Context, () => { /* Update calls already done above */ });
                 }
 
                 return toUpdate;
@@ -160,7 +185,7 @@ namespace SharePoint.CSOM.Extensions
             var listItem = list.GetItemById(item.Id!.Value)
                 ?? throw new ArgumentException($"Item with ID {item.Id.Value} does not exist in the list.");
 
-            await DeleteItempublic(list.Context, listItem, permanentDelete);
+            await DeleteItemInternal(list.Context, listItem, permanentDelete);
         }
 
         public static async Task DeleteItemById(this List list, int itemId, bool permanentDelete = false)
@@ -168,7 +193,7 @@ namespace SharePoint.CSOM.Extensions
             var listItem = list.GetItemById(itemId)
                 ?? throw new ArgumentException($"Item with ID {itemId} does not exist in the list.");
 
-            await DeleteItempublic(list.Context, listItem, permanentDelete);
+            await DeleteItemInternal(list.Context, listItem, permanentDelete);
         }
 
         public static async Task DeleteItemsByIds(this List list, IEnumerable<int> itemIds, bool permanentDelete = false)
@@ -196,7 +221,8 @@ namespace SharePoint.CSOM.Extensions
                     return listItem;
                 }).ToList();
 
-                await list.Context.ExecuteQueryRetryAsync();
+                await ExecuteQuery(list.Context, () => { /* Delete calls already done above */ });
+                
                 return listItems;
             });
         }
@@ -218,14 +244,15 @@ namespace SharePoint.CSOM.Extensions
                     return listItem;
                 }).ToList();
 
-                await list.Context.ExecuteQueryRetryAsync();
+                await ExecuteQuery(list.Context, () => { /* Delete calls already done above */ });
+                
                 return listItems;
             });
         }
 
         #region Private Methods
 
-        private static async Task DeleteItempublic(ClientRuntimeContext context, ListItem listItem, bool permanentDelete)
+        private static async Task DeleteItemInternal(ClientRuntimeContext context, ListItem listItem, bool permanentDelete)
         {
             if (listItem == null)
             {
@@ -241,7 +268,7 @@ namespace SharePoint.CSOM.Extensions
                 listItem.Recycle();
             }
 
-            await context.ExecuteQueryRetryAsync();
+            await ExecuteQuery(context, () => { /* Delete calls already done above */ });
         }
 
         #endregion Private Methods

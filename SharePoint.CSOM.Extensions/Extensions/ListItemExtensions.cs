@@ -39,5 +39,11 @@ namespace SharePoint.CSOM.Extensions.Extensions
                 _ => true
             };
         }
+
+        internal static bool FieldExists(this ListItem item, string fieldName)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(fieldName)) { return false; }
+            return item.FieldValues.ContainsKey(fieldName);
+        }
     }
 }
